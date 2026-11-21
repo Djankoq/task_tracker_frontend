@@ -1,0 +1,9 @@
+.field { display: grid; gap: .45rem; }
+.field label { font-size: .875rem; font-weight: 600; }
+.input { width: 100%; min-height: 2.75rem; padding: .7rem .85rem; border: 1px solid var(--border); border-radius: .55rem; color: var(--text); background: white; font: inherit; font-size: .9375rem; }
+.input::placeholder { color: #7b8497; }
+.input:focus { border-color: var(--primary); outline: 3px solid #5658d51c; }
+.input[aria-invalid='true'] { border-color: #c33444; }
+.error, .hint { font-size: .875rem; }
+.hint { color: var(--muted); }
+.error, .required { color: #b7283b; }

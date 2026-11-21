@@ -1,0 +1,21 @@
+.layout { min-height: 100dvh; display: flex; flex-direction: column; }
+.header { background: white; border-bottom: 1px solid var(--border); }
+.headerInner { max-width: 1240px; margin: auto; padding: 0 2rem; min-height: 80px; display: flex; align-items: center; gap: 3.2rem; }
+.brand { display: flex; align-items: center; color: #20283e; font-size: 1.35rem; letter-spacing: -.05em; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.brandLight { font-weight: 450; color: #6b7088; }
+.logo { width: 34px; height: 34px; display: grid; place-items: center; background: var(--primary); color: white; border-radius: .6rem; margin-right: .65rem; }
+.nav { display: flex; align-self: stretch; gap: .3rem; }
+.navLink { position: relative; display: flex; align-items: center; gap: .5rem; padding: 0 .8rem; color: var(--muted); font-size: .875rem; text-decoration: none; white-space: nowrap; }
+.navLink:hover { color: var(--primary); background: #fafaff; }
+.active { color: var(--primary); font-weight: 600; }
+.active::after { content: ''; position: absolute; height: 3px; background: var(--primary); bottom: 0; left: .8rem; right: .8rem; border-radius: 3px 3px 0 0; }
+.workspace { margin-left: auto; color: var(--muted); font-size: .8125rem; white-space: nowrap; padding: .4rem .6rem; border: 1px solid var(--border); border-radius: .4rem; }
+.main { flex: 1; width: 100%; max-width: 1240px; margin: auto; padding: 1.7rem 2rem 3.5rem; outline: none; }
+.demo { display: flex; align-items: flex-start; gap: .6rem; font-size: .8125rem; line-height: 1.65; color: #58627c; background: #eef1f8; padding: .7rem 1rem; border-radius: .5rem; margin-bottom: 2.1rem; }
+.demo svg { flex-shrink: 0; margin-top: .14rem; }
+.demo strong { font-weight: 600; }
+.footer { display: flex; gap: 1rem; justify-content: space-between; width: calc(100% - 4rem); max-width: 1176px; margin: 0 auto; padding: 1.4rem 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .8125rem; }
+.skip { position: fixed; top: -100px; left: 1rem; z-index: 10; padding: 1rem; color: white; background: var(--primary); }
+.skip:focus { top: 1rem; }
+@media (max-width: 1100px) { .headerInner { gap: 1.5rem; } .workspace { display: none; } .nav { margin-left: auto; } }
+@media (max-width: 760px) { .headerInner { padding: 1rem 1.1rem 0; flex-wrap: wrap; gap: .75rem; } .nav { width: 100%; overflow-x: auto; margin: 0; min-height: 48px; } .navLink { padding: 0 .65rem; } .main { padding: 1.25rem 1.1rem 2rem; } .demo { margin-bottom: 1.5rem; } .footer { width: calc(100% - 2.2rem); flex-wrap: wrap; font-size: .8125rem; } }

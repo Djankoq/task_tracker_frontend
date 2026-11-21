@@ -1,0 +1,9 @@
+.statuses { padding: 0 1.5rem 1.75rem; display: grid; gap: 1.15rem; }
+.label { display: flex; justify-content: space-between; font-size: .875rem; margin-bottom: .5rem; }
+.label strong { font-weight: 500; color: var(--muted); }
+.track { height: 8px; background: #f0f2f8; border-radius: 5px; overflow: hidden; }
+.track span { height: 100%; display: block; border-radius: inherit; }
+.todo span { background: #a6afc4; }
+.in_progress span { background: #8782cf; }
+.in_review span { background: #d7b36a; }
+.done span { background: #66ad91; }

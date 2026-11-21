@@ -1,0 +1,6 @@
+.button { display: inline-flex; justify-content: center; align-items: center; gap: .5rem; min-height: 2.75rem; padding: .65rem 1.05rem; border: 1px solid transparent; border-radius: .6rem; font-size: .875rem; font-weight: 600; line-height: 1.4; text-decoration: none; cursor: pointer; transition: background .15s, box-shadow .15s; white-space: nowrap; }
+.primary { color: white; background: var(--primary); box-shadow: 0 2px 3px #3535af14; }
+.primary:hover { background: #4143b8; }
+.secondary { color: var(--text); background: white; border-color: var(--border); }
+.secondary:hover { background: #f1f3f8; }
+.button:disabled { opacity: .5; cursor: not-allowed; }

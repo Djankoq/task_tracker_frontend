@@ -1,0 +1,6 @@
+.badge { display: inline-flex; align-items: center; padding: .28rem .6rem; border-radius: .35rem; font-size: .8125rem; font-weight: 500; white-space: nowrap; }
+.neutral { color: #586276; background: #f0f2f6; }
+.purple { color: #5150ad; background: #efedfd; }
+.green { color: #187553; background: #e9f6f0; }
+.amber { color: #95600f; background: #fff5df; }
+.red { color: #ac3548; background: #ffedf0; }
