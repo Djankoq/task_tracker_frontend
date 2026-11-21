@@ -1,19 +1,8 @@
-import { apiClient } from './client'
-import type { ListParams, PageResponse, Task, TaskPriority, TaskStatus } from '../types'
-
+import { crudService } from './crud'
+import type { ListParams, Task, TaskCreate, TaskUpdate, TaskStatus, TaskPriority } from '../types'
+export const taskSortFields = ['task_id', 'project_id', 'assignee_id', 'title', 'due_at', 'priority', 'status'] as const
 export interface TaskListParams extends ListParams {
-  sort_by?: 'task_id' | 'project_id' | 'assignee_id' | 'title' | 'due_at' | 'priority' | 'status'
-  project_id?: number
-  assignee_id?: number
-  status?: TaskStatus
-  priority?: TaskPriority
-  due_from?: string
-  due_to?: string
+  sort_by?: typeof taskSortFields[number]; project_id?: number; assignee_id?: number
+  status?: TaskStatus; priority?: TaskPriority; due_from?: string; due_to?: string
 }
-
-export const tasksApi = {
-  async list(params: TaskListParams = {}, signal?: AbortSignal) {
-    const { data } = await apiClient.get<PageResponse<Task>>('/tasks/', { params, signal })
-    return data
-  },
-}
+export const tasksApi = crudService<Task, TaskCreate, TaskUpdate, TaskListParams>('tasks')

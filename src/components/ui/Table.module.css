@@ -5,3 +5,6 @@
 .table tbody tr:last-child td { border-bottom: 0; }
 .table tbody tr:hover { background: #fafaff; }
 .empty { padding: 3.5rem 1rem !important; text-align: center !important; color: var(--muted); white-space: normal; }
+.sort { display: inline-flex; align-items: center; gap: .5rem; padding: .2rem 0; background: transparent; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.sort:hover { color: var(--primary); }
+.sort span { font-size: 1rem; }

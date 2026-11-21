@@ -1,21 +1,13 @@
 import { apiClient } from './client'
-import type { Summary, TaskStatus } from '../types'
-
+import type { Summary, StatusCount, RankedProject } from '../types'
 export const analyticsApi = {
   async summary(signal?: AbortSignal) {
-    const { data } = await apiClient.get<Summary>('/stats/summary', { signal })
-    return data
+    return (await apiClient.get<Summary>('/stats/summary', { signal })).data
   },
   async tasksByStatus(signal?: AbortSignal) {
-    const { data } = await apiClient.get<{ status: TaskStatus; task_count: number }[]>(
-      '/stats/tasks-by-status', { signal },
-    )
-    return data
+    return (await apiClient.get<StatusCount[]>('/stats/tasks-by-status', { signal })).data
   },
   async topProjects(limit = 5, signal?: AbortSignal) {
-    const { data } = await apiClient.get<{ project_id: number; name: string; task_count: number }[]>(
-      '/reports/top-projects', { params: { limit }, signal },
-    )
-    return data
+    return (await apiClient.get<RankedProject[]>('/reports/top-projects', { params: { limit }, signal })).data
   },
 }

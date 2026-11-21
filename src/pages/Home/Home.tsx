@@ -1,34 +1,46 @@
+import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { useDemoUsers } from '../../app/DemoContext'
-import { demoProjects, demoTasks, statusLabels } from '../../mocks/data'
-import { Badge, ButtonLink, Icon, type IconName } from '../../components/ui'
+import { analyticsApi } from '../../api/analytics'
+import { tasksApi } from '../../api/tasks'
+import { useSession } from '../../contexts/SessionContext'
+import { useQuery } from '../../hooks/useQuery'
+import { Badge, ButtonLink, Icon, Loader, Table, type Column, type IconName } from '../../components/ui'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { statusLabels } from '../../types/labels'
+import type { Task } from '../../types'
 import common from '../Pages.module.css'
 import styles from './Home.module.css'
-
+const columns: Column<Task>[] = [
+  { key: 'title', header: 'Задача', render: (task) => <Link to={'/tasks/' + task.task_id + '/edit'}>{task.title}</Link> },
+  { key: 'project', header: 'Проект', render: (task) => '#' + task.project_id },
+  { key: 'status', header: 'Статус', render: (task) => <Badge tone={task.status === 'done' ? 'green' : 'purple'}>{statusLabels[task.status]}</Badge> },
+]
 export function Home() {
-  const { users } = useDemoUsers()
-  const complete = demoTasks.filter((task) => task.status === 'done').length
-  const stats: { label: string; value: number; detail: string; icon: IconName; to: string; color: string }[] = [
-    { label: 'Проекты', value: demoProjects.length, detail: 'Пространства для ваших идей', icon: 'folder', to: '/projects', color: 'purple' },
-    { label: 'Всего задач', value: demoTasks.length, detail: 'От идеи до результата', icon: 'check', to: '/tasks', color: 'blue' },
-    { label: 'Пользователи', value: users.length, detail: 'Люди, с которыми всё получается', icon: 'users', to: '/users', color: 'teal' },
-    { label: 'Завершено', value: complete, detail: `${Math.round(complete / demoTasks.length * 100)}% от всех задач`, icon: 'chart', to: '/reports', color: 'amber' },
-  ]
-
-  return (
-    <>
-      <div className={common.heading}><div><p className={common.eyebrow}>ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО</p><h1>Всё начинается с плана.</h1><p className={common.subtitle}>Добро пожаловать в Task Tracker. Проекты, задачи и команда — в одном месте.</p></div></div>
-      <section className={styles.hero} aria-label="Знакомство с проектом">
-        <div className={styles.heroContent}><span className={styles.heroTag}>Меньше хаоса. Больше результата.</span><h2>Большие идеи.<br />Понятные задачи.</h2><p>Соберите команду, распределите работу<br className={styles.desktopBreak} /> и двигайтесь к цели вместе.</p><ButtonLink to="/projects" variant="secondary"><Icon name="folder" size={17} />Открыть проекты</ButtonLink></div>
-        <div className={styles.illustration} aria-hidden="true"><div className={styles.orbit} /><div className={styles.miniBoard}><div className={styles.boardTop}><span />План проекта<i>•••</i></div><div className={styles.boardRow}><b className={styles.done}>✓</b><span>Собрать команду<small>Отличное начало</small></span><em>Готово</em></div><div className={styles.boardRow}><b className={styles.done}>✓</b><span>Определить задачи<small>Всё по полочкам</small></span></div><div className={styles.boardRow}><b className={styles.unchecked} /><span>Создать что-то классное<small>Следующий шаг</small></span></div><div className={styles.progress}><span /></div><div className={styles.boardBottom}>План превращается в результат <span>2 / 3</span></div></div><div className={styles.floatingCheck}><Icon name="check" size={25} /></div></div>
-      </section>
-      <section className={styles.stats} aria-label="Демонстрационные показатели">
-        {stats.map((stat) => <Link to={stat.to} key={stat.label} className={styles.stat}><div className={styles.statTop}><span>{stat.label}</span><span className={`${styles.statIcon} ${styles[stat.color]}`}><Icon name={stat.icon} size={19} /></span></div><strong>{stat.value}</strong><p>{stat.detail}</p></Link>)}
-      </section>
-      <div className={styles.lowerGrid}>
-        <section className={common.panel}><div className={common.panelHeader}><h2>Задачи команды</h2><Link to="/tasks">Все задачи</Link></div><div className={styles.taskList}>{demoTasks.slice(0, 3).map((task) => <div className={styles.task} key={task.task_id}><span className={`${styles.taskCheck} ${task.status === 'done' ? styles.taskDone : ''}`}>{task.status === 'done' ? '✓' : ''}</span><div><span className={styles.taskTitle}>{task.title}</span><small>{demoProjects.find((project) => project.project_id === task.project_id)?.name}</small></div><Badge tone={task.status === 'done' ? 'green' : task.status === 'in_progress' ? 'purple' : 'neutral'}>{statusLabels[task.status]}</Badge></div>)}</div></section>
-        <section className={`${common.panel} ${styles.team}`}><span className={styles.teamIcon}><Icon name="users" size={23} /></span><h2>Хорошая работа — командная.</h2><p>Познакомьтесь с участниками и подготовьте команду к новым проектам.</p><div className={styles.avatars} aria-label={`${users.length} пользователей`}>{users.slice(0, 4).map((user) => <span key={user.user_id} title={user.display_name}>{user.display_name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</span>)}</div><Link to="/users">Перейти к пользователям</Link></section>
-      </div>
-    </>
-  )
+  const { user } = useSession()
+  const load = useCallback(async (signal: AbortSignal) => {
+    const [summary, statuses, tasks] = await Promise.all([
+      analyticsApi.summary(signal), analyticsApi.tasksByStatus(signal),
+      tasksApi.getAll({ page: 1, per_page: 5, sort_by: 'task_id', sort_order: 'desc' }, signal),
+    ])
+    return { summary, statuses, tasks }
+  }, [])
+  const query = useQuery(load)
+  const data = query.data
+  const counts: { label: string; value: number; icon: IconName; to: string; color: string }[] = data ? [
+    { label: 'Проекты', value: data.summary.total_projects, icon: 'folder', to: '/projects', color: 'purple' },
+    { label: 'Всего задач', value: data.summary.total_tasks, icon: 'check', to: '/tasks', color: 'blue' },
+    { label: 'В работе', value: data.statuses.find((item) => item.status === 'in_progress')?.task_count || 0, icon: 'clock', to: '/tasks?status=in_progress', color: 'amber' },
+    { label: 'Завершено', value: data.statuses.find((item) => item.status === 'done')?.task_count || 0, icon: 'chart', to: '/tasks?status=done', color: 'teal' },
+  ] : []
+  return <>
+    <div className={common.heading}><div><p className={common.eyebrow}>ВАШЕ РАБОЧЕЕ ПРОСТРАНСТВО</p><h1>Здравствуйте, {user?.display_name}.</h1><p className={common.subtitle}>Проекты, задачи и команда — в одном месте. Все показатели получены из API.</p></div></div>
+    <section className={styles.hero} aria-label="Рабочее пространство">
+      <div className={styles.heroContent}><span className={styles.heroTag}>Меньше хаоса. Больше результата.</span><h2>Большие идеи.<br />Понятные задачи.</h2><p>Распределяйте работу, следите за сроками<br />и двигайтесь к цели вместе.</p><ButtonLink to="/projects" variant="secondary"><Icon name="folder" size={17} />Открыть проекты</ButtonLink></div>
+      <div className={styles.illustration} aria-hidden="true"><div className={styles.orbit} /><div className={styles.miniBoard}><div className={styles.boardTop}><span />Работа команды</div><div className={styles.boardRow}><b className={styles.done}>✓</b><span>Общая цель<small>Всё начинается с проекта</small></span></div><div className={styles.boardRow}><b className={styles.done}>✓</b><span>Понятные приоритеты<small>У каждой задачи свой срок</small></span></div><div className={styles.boardRow}><b className={styles.unchecked} /><span>Следующий шаг<small>Двигайтесь вперёд вместе</small></span></div></div></div>
+    </section>
+    {query.loading ? <Loader /> : query.error ? <ErrorState message={query.error} retry={query.refresh} /> : data && <>
+      <section className={styles.stats} aria-label="Показатели API">{counts.map((stat) => <Link to={stat.to} key={stat.label} className={styles.stat}><div className={styles.statTop}><span>{stat.label}</span><span className={styles.statIcon + ' ' + styles[stat.color]}><Icon name={stat.icon} size={19} /></span></div><strong>{stat.value}</strong><p>Доступно для вашего сеанса</p></Link>)}</section>
+      <section className={common.panel}><div className={common.panelHeader}><h2>Последние задачи</h2><Link to="/tasks">Все задачи</Link></div><Table columns={columns} rows={data.tasks.items} rowKey={(task) => task.task_id} caption="Последние задачи" emptyMessage="Задач пока нет. Создайте первую задачу в разделе «Задачи»." /></section>
+    </>}
+  </>
 }

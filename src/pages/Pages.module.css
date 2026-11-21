@@ -28,6 +28,20 @@
 .checkbox small { display: block; color: var(--muted); margin-top: .3rem; font-size: .875rem; }
 .formActions { display: flex; gap: .75rem; padding-top: 1.2rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .back { display: inline-block; margin-bottom: 1.5rem; font-size: .875rem; text-decoration: none; }
+.fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 1.4rem; min-width: 0; }
+.fieldset:disabled { opacity: .8; }
+.formError { color: #a32b43; padding: 1rem; background: #fff0f2; border-radius: .5rem; margin-bottom: 0; }
+.rowActions { display: flex; align-items: center; justify-content: flex-end; gap: .85rem; }
+.rowActions a { text-decoration: none; font-weight: 500; }
+.rowActions a:hover { text-decoration: underline; }
+.deleteButton { background: transparent; border: 0; color: #b3334b; cursor: pointer; padding: .4rem 0; font-size: .875rem; }
+.deleteButton:disabled { opacity: .4; cursor: not-allowed; }
+.searchForm { display: flex; align-items: flex-end; gap: .6rem; flex: 1; min-width: 260px; }
+.searchForm>div { flex: 1; }
+.filterInput { padding: .65rem .8rem; min-height: 2.75rem; width: 110px; color: var(--text); background: white; border: 1px solid var(--border); border-radius: .55rem; font-size: .9375rem; }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border); padding: 1rem 1.5rem; font-size: .875rem; color: var(--muted); }
+.pagination label { display: flex; align-items: center; gap: .6rem; }
+.toolbar { flex-wrap: wrap; }
 .back:hover { text-decoration: underline; }
 .success { background: #e9f6ee; border: 1px solid #cde8d8; color: #24704c; padding: .9rem 1.1rem; border-radius: .6rem; margin-bottom: 1.5rem; font-size: .875rem; }
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }

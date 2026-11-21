@@ -1,0 +1,6 @@
+.notifications { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 100; display: grid; gap: .65rem; width: min(420px, calc(100vw - 2.5rem)); }
+.toast { padding: 1rem; display: flex; align-items: flex-start; gap: 1rem; border: 1px solid; border-radius: .7rem; box-shadow: 0 6px 24px #18244118; font-size: .9375rem; }
+.success { color: #1d6549; background: #edfaf2; border-color: #c1e2cf; }
+.error { color: #963247; background: #fff0f2; border-color: #f0c6cf; }
+.toast span { flex: 1; overflow-wrap: anywhere; }
+.toast button { border: 0; background: transparent; color: inherit; padding: 0 .35rem; font-size: 1.3rem; cursor: pointer; }

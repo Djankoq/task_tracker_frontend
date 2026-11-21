@@ -1,133 +1,104 @@
 # Task Tracker — Frontend
 
-Учебный React + TypeScript проект на Vite. Маршрутизация — React Router, HTTP-клиент — Axios, стили — CSS Modules. Это отдельный проект рядом с бэкендом:
-
-```text
-PycharmProjects/
-├── task_tracker/            # Backend: FastAPI + PostgreSQL
-└── task_tracker_frontend/   # Frontend: React + TypeScript + Vite
-```
+React + TypeScript + Vite, React Router, Axios и CSS Modules. Самостоятельный репозиторий рядом с FastAPI-проектом task_tracker. Все страницы работают с настоящим API; демоданные удалены.
 
 ## Запуск
 
-Нужен Node.js 22.12+ (или совместимая версия, указанная Vite).
+Нужен Node.js 22.12+.
 
-```powershell
+1. Запустите PostgreSQL и обновлённый бэкенд из соседнего task_tracker: .\start-dev.ps1.
+2. В отдельном терминале:
+
+~~~powershell
 cd C:\Users\kurap\PycharmProjects\task_tracker_frontend
 npm ci
 npm run dev
-```
+~~~
 
-Открыть http://localhost:5173. Для просмотра интерфейса бэкенд не требуется.
+3. Откройте http://localhost:5173 и подключитесь с действующим Bearer-токеном на странице «Сеанс». Вход по паролю отсутствует в контракте API. На свежих seed-данных тестовые сеансы действуют 24 часа.
+4. Для демонстрации на отдельной временной базе используйте [DEMO.md](DEMO.md).
 
-```powershell
-npm run build    # Проверка TypeScript и production-сборка в dist
-npm run lint     # Статический анализ
-npm run preview  # Локальный просмотр production-сборки
-```
+Vite проксирует /api/* на http://127.0.0.1:8001/*. Для другого адреса скопируйте .env.example в .env и измените API_PROXY_TARGET, затем перезапустите Vite. VITE_API_BASE_URL — браузерный адрес API, по умолчанию /api. Токены и пароли не следует записывать в VITE_* или Git. Сеанс хранится в памяти и sessionStorage текущей вкладки; кнопка «Отключиться» удаляет его.
+
+## Возможности
+
+- Полный CRUD пользователей, проектов и задач: getAll, getById, create, update, delete.
+- Реальные списки, серверные поиск, фильтрация, сортировка по заголовкам и пагинация.
+- Параметры списков сохраняются в URL; при смене фильтра или сортировки страница сбрасывается на первую.
+- Создание и редактирование по параметру URL, валидация полей, ошибки API рядом с полями и в уведомлениях.
+- Подтверждение удаления в модальном dialog с блокировкой повторного запроса.
+- После удаления последней строки на странице выполняется переход на предыдущую.
+- NotificationContext и NotificationProvider: success для сохранения/удаления, error для ошибок запросов. Отменённые запросы не вызывают уведомлений.
+- Загрузчики, пустые состояния и повтор запроса после ошибки.
+- Request interceptor добавляет Bearer; response interceptor преобразует ошибки в ApiError с HTTP-статусом, code и details. Ошибки 401 сбрасывают сеанс.
+- Главная и отчёты загружают настоящую аналитику.
+- Типы всех семи сущностей: User, Project, ProjectMember, Task, TaskComment, TaskChange, AuthSession. Для сущностей без публичных API описаны только данные, необходимые клиенту, без хешей паролей/токенов.
 
 ## Структура
 
-```text
-task_tracker_frontend/
-├── public/                 # Статические файлы
-├── src/
-│   ├── app/                # App, маршруты, провайдер демоданных
-│   ├── api/                # Axios instance, типизированные API-модули
-│   ├── components/
-│   │   ├── layout/         # Layout, Header, Footer
-│   │   └── ui/             # Button, Input, Table, Badge, Icon, Loader
-│   ├── mocks/              # Демонстрационные данные отдельно от API
-│   ├── pages/
-│   │   ├── Home/
-│   │   ├── Users/          # UsersList и UserForm
-│   │   ├── Projects/
-│   │   ├── Tasks/
-│   │   ├── Reports/
-│   │   └── NotFound/
-│   ├── styles/             # Глобальные стили и CSS-переменные
-│   ├── types/              # Типы данных бэкенда
-│   └── main.tsx
-├── .env.example
-└── vite.config.ts
-```
-
-Слайд 5 не был приложен к заданию, поэтому выбрана стандартная структура с разделением страниц, компонентов и API. Вместо примеров Products/Orders созданы реальные разделы этого бэкенда: Projects, Tasks, Reports.
+~~~text
+src/
+├── api/              # Axios, CRUD-сервисы, аналитика и загрузка справочников
+├── app/              # Маршруты и проверка сеанса/административных прав
+├── contexts/         # Сеанс и уведомления
+├── hooks/            # useQuery с AbortController, useMutation
+├── components/
+│   ├── layout/       # Layout, Header, Footer
+│   ├── ui/           # Button, Input, Table, Loader, ConfirmDialog, ErrorState
+│   ├── forms/        # Общие поля и загрузка редактируемой записи
+│   └── lists/        # Общий список, сортировка, фильтры, пагинация и удаление
+├── pages/            # Home, Connection, Users, Projects, Tasks, Reports, NotFound
+├── styles/
+├── types/
+└── utils/            # Проверка полей и параметров URL
+tests/api.test.mjs     # Тесты сервисов и интерсепторов через Vite SSR
+~~~
 
 ## Маршруты
 
-| URL | Страница |
+| URL | Назначение |
 | --- | --- |
-| `/` | Home: приветствие, демопоказатели, переходы в разделы |
-| `/users` | UsersList: таблица, поиск по имени/логину, фильтр роли |
-| `/users/new` | UserForm: создание пользователя в деморежиме |
-| `/users/:id/edit` | UserForm: редактирование пользователя в деморежиме |
-| `/projects` | Заготовка списка проектов |
-| `/tasks` | Заготовка списка задач, локальные поиск и фильтры |
-| `/tasks?project_id=1` | Задачи выбранного проекта |
-| `/reports` | Заготовка аналитики |
-| `*` | NotFound (404) |
+| / | Реальная сводка |
+| /connection | Подключение/смена/отключение Bearer-сеанса |
+| /users | Список пользователей, только администратор |
+| /users/new | Создание пользователя |
+| /users/:id/edit | Редактирование пользователя |
+| /projects | Список проектов |
+| /projects/new | Создание проекта, только администратор |
+| /projects/:id/edit | Изменение проекта, только администратор |
+| /tasks | Список задач |
+| /tasks/new | Создание задачи |
+| /tasks/:id/edit | Изменение задачи |
+| /reports | Аналитика API |
+| * | Страница 404 |
 
-Все страницы вложены в Layout с Header, навигацией через Link/NavLink и Footer. Несуществующий или некорректный ID в форме показывает сообщение «Пользователь не найден».
+Примеры: /users?per_page=5&sort_by=display_name&sort_order=desc, /tasks?project_id=1&status=in_progress.
 
-## Что уже работает
+## Правила бэкенда
 
-- Адаптивный интерфейс, навигация, активный пункт меню, заголовки вкладки.
-- Универсальный `Table<T>`: описание колонок через `Column<T>`, render-функции, rowKey, пустое состояние, горизонтальная прокрутка.
-- Button: `primary` и `secondary`, отдельный ButtonLink для переходов.
-- Input: label, required, error, hint, доступные связи `aria-describedby`.
-- Дополнительно: Badge, Icon, Loader с учётом reduced motion.
-- Учебные формы: обязательные поля, нижний регистр и уникальность логина, ошибки полей, возврат к списку после сохранения.
-- Пользователи хранятся в React Context (`useState`). Изменения действуют только до перезагрузки вкладки. В базу ничего не отправляется.
-- useEffect в Layout обновляет заголовок вкладки, прокрутку и фокус после перехода.
+- Пользователи: CRUD только для администратора; нельзя удалить свой аккаунт или снять с себя роль администратора. При создании нужен пароль длиной 8–128 символов. При редактировании пустое поле пароля не отправляется.
+- Проекты: запись только для администратора. Создание проекта не назначает участников автоматически. Чтобы создавать в нём задачи, руководителя и исполнителя нужно назначить средствами бэкенда. Существующие права не расширяются.
+- Задачи: создаёт/удаляет руководитель проекта. Изменяет руководитель или назначенный исполнитель; исполнитель меняет только допустимый статус.
+- Исполнитель: todo → in_progress → in_review. Руководитель: in_review → done или in_progress; для возврата обязательна review_reason.
+- Администратор не получает роль руководителя проекта автоматически.
+- Удаление связанных записей возвращает 409: например, задача с комментариями/историей или проект с участниками. Интерфейс показывает понятную ошибку, не удаляет историю каскадно.
+- Пароли не используются для входа во фронтенд: API принимает Bearer-токены существующих сеансов.
 
-## Подготовка к API
+## Проверки
 
-`src/api/client.ts` содержит общий Axios instance, timeout, установку Bearer-токена и преобразование ошибок API в сообщения. Модули `users.ts`, `projects.ts`, `tasks.ts`, `analytics.ts` используют существующие маршруты и формат пагинации `{ items, total, page, per_page, total_pages }`. Они подготовлены к подключению, но страницы пока используют демоданные. Произвольные query-параметры бэкенд отклоняет; интерфейсы параметров отражают разрешённые фильтры.
+~~~powershell
+npm test
+npm run build
+npm run lint
+~~~
 
-В режиме разработки Vite пересылает `/api/*` на `http://127.0.0.1:8001/*`: например, `/api/users/` → `/users/`. Поэтому для локальной разработки не нужно менять CORS бэкенда. При другом порте скопируйте `.env.example` в `.env` и измените `API_PROXY_TARGET`, затем перезапустите Vite.
+Тесты проверяют контракты CRUD-сервисов, параметры запросов, Bearer-интерсептор, нормализацию ошибок, отмену запросов и загрузку всех страниц справочника. Сборка также выполняет строгую проверку TypeScript. Сценарии реальной UI-проверки и ошибок перечислены в [DEMO.md](DEMO.md). Тесты бэкенда запускаются из соседнего проекта: .\.venv\Scripts\python.exe -m pytest -q.
 
-Бэкенд запускается в отдельном терминале:
+Для production настройте SPA fallback на index.html и reverse proxy /api к FastAPI. Vite dev proxy не является production-сервером. При отдельном origin API настройте CORS.
 
-```powershell
-cd C:\Users\kurap\PycharmProjects\task_tracker
-.\start-dev.ps1
-```
+## Полезные материалы
 
-Токен устанавливается при выполнении приложения через `setSessionToken(token)`. Реальные токены нельзя класть в `VITE_*`: эти значения видны в браузерном bundle. Для списка пользователей нужен действующий сеанс администратора. В этом бэкенде пока отсутствуют POST/PUT/PATCH `/users` и GET `/users/{id}`; перед интеграцией UserForm их нужно реализовать или согласовать другой контракт. Фронтенд не отправляет запросы на несуществующие endpoints.
-
-Для production Vite proxy не работает: сервер публикации должен отдавать `index.html` для клиентских маршрутов и проксировать `/api` к FastAPI. Либо укажите адрес API в `VITE_API_BASE_URL` при сборке и настройте CORS на бэкенде. `npm run preview` проверяет сборку интерфейса, а не production-развёртывание API.
-
-### Пример следующего шага: загрузка через useEffect
-
-```tsx
-const [users, setUsers] = useState<User[]>([])
-const [loading, setLoading] = useState(true)
-const [error, setError] = useState('')
-
-useEffect(() => {
-  const controller = new AbortController()
-  usersApi.list({ page: 1, per_page: 10 }, controller.signal)
-    .then((page) => setUsers(page.items))
-    .catch((cause: unknown) => {
-      if (!controller.signal.aborted) setError(getApiErrorMessage(cause))
-    })
-    .finally(() => {
-      if (!controller.signal.aborted) setLoading(false)
-    })
-  return () => controller.abort()
-}, [])
-```
-
-Подключите реальные данные вместо DemoProvider, показывайте Loader/ошибки/пустое состояние, добавьте пагинацию с `total_pages`. В примере предполагается, что действующий токен уже установлен, и добавлены импорты React, User, usersApi и getApiErrorMessage. Данные API и демоданные не следует смешивать незаметно для пользователя.
-
-## К следующему занятию
-
-1. [React: useState](https://react.dev/reference/react/useState) — состояние полей формы и фильтров.
-2. [React: useEffect](https://react.dev/reference/react/useEffect) — загрузка данных и очистка через AbortController.
-3. [Axios: общий instance](https://axios-http.com/docs/instance) — baseURL, timeout, конфигурация запросов.
-4. [React Router: маршрутизация](https://reactrouter.com/start/declarative/routing) — вложенные маршруты, Outlet и параметры URL.
-5. [Vite: начало работы](https://vite.dev/guide/) — dev server и production-сборка.
-6. Swagger бэкенда: http://127.0.0.1:8001/docs — проверить контракт, роли, HTTP-коды и формат ошибок.
-
-На следующем этапе: подключить списки к REST API, добавить состояния загрузки и ошибок, серверные фильтры и пагинацию; после согласования endpoints — сохранение пользователей.
+- [Axios: интерсепторы](https://axios-http.com/docs/interceptors)
+- [React: useEffect и очистка запросов](https://react.dev/reference/react/useEffect)
+- [React: useState](https://react.dev/reference/react/useState)
+- Swagger: http://127.0.0.1:8001/docs

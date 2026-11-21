@@ -1,0 +1,8 @@
+.dialog { width: min(480px, calc(100vw - 2rem)); border: 1px solid var(--border); border-radius: .85rem; padding: 1.6rem; color: var(--text); box-shadow: 0 20px 80px #13234833; }
+.dialog::backdrop { background: #19203977; }
+.dialog h2 { margin-bottom: .8rem; }
+.dialog p { font-size: .9375rem; overflow-wrap: anywhere; }
+.actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+.danger { background: #b4364c; }
+.danger:hover { background: #98273b; }
+.error { color: #a32b43; }

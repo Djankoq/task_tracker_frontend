@@ -1,24 +1,35 @@
-import { demoProjects, demoTasks, statusLabels } from '../../mocks/data'
-import { Badge, Icon, Table, type Column } from '../../components/ui'
-import type { Project } from '../../types'
+import { analyticsApi } from '../../api/analytics'
+import { useQuery } from '../../hooks/useQuery'
+import { Badge, Loader, Table, type Column } from '../../components/ui'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { statusLabels } from '../../types/labels'
+import type { RankedProject } from '../../types'
 import styles from '../Pages.module.css'
 import report from './Reports.module.css'
-
+async function loadReport(signal: AbortSignal) {
+  const [summary, statuses, ranked] = await Promise.all([
+    analyticsApi.summary(signal), analyticsApi.tasksByStatus(signal), analyticsApi.topProjects(5, signal),
+  ])
+  return { summary, statuses, ranked }
+}
+const columns: Column<RankedProject>[] = [
+  { key: 'name', header: 'Проект', render: (project) => project.name },
+  { key: 'count', header: 'Задач', align: 'right', render: (project) => <Badge tone="purple">{project.task_count}</Badge> },
+]
 export function Reports() {
-  const counts = Object.entries(statusLabels).map(([status, label]) => ({ status, label, count: demoTasks.filter((task) => task.status === status).length }))
-  const ranked = [...demoProjects].sort((a, b) => demoTasks.filter((task) => task.project_id === b.project_id).length - demoTasks.filter((task) => task.project_id === a.project_id).length || a.project_id - b.project_id)
-  const columns: Column<Project>[] = [
-    { key: 'name', header: 'Проект', render: (project) => project.name },
-    { key: 'tasks', header: 'Задач', align: 'right', render: (project) => <Badge tone="purple">{demoTasks.filter((task) => task.project_id === project.project_id).length}</Badge> },
-  ]
-  return (
-    <>
-      <div className={styles.heading}><div><p className={styles.eyebrow}>ОБЩАЯ КАРТИНА</p><h1>Отчёты</h1><p className={styles.subtitle}>Небольшой обзор того, как продвигается работа.</p></div><Badge>Демоданные</Badge></div>
+  const query = useQuery(loadReport)
+  const data = query.data
+  return <>
+    <div className={styles.heading}><div><p className={styles.eyebrow}>ОБЩАЯ КАРТИНА</p><h1>Отчёты</h1><p className={styles.subtitle}>Статистика проектов, доступных вашему сеансу.</p></div></div>
+    {query.loading ? <Loader /> : query.error ? <ErrorState message={query.error} retry={query.refresh} /> : data && <>
       <div className={styles.cards}>
-        <section className={styles.panel}><div className={styles.panelHeader}><h2>Задачи по статусам</h2><Icon name="chart" /></div><div className={report.statuses}>{counts.map(({ status, label, count }) => <div key={status}><div className={report.label}><span>{label}</span><strong>{count}</strong></div><div className={`${report.track} ${report[status]}`} role="meter" aria-label={label} aria-valuenow={count} aria-valuemin={0} aria-valuemax={demoTasks.length} aria-valuetext={`${count} из ${demoTasks.length} задач`}><span style={{ width: `${count / demoTasks.length * 100}%` }} /></div></div>)}</div></section>
-        <section className={styles.panel}><div className={styles.panelHeader}><h2>Загрузка проектов</h2><Icon name="folder" /></div><Table columns={columns} rows={ranked} rowKey={(project) => project.project_id} caption="Проекты по количеству задач" /><div className={styles.tableFooter}>Всего проектов: {demoProjects.length} · Всего задач: {demoTasks.length}</div></section>
+        <section className={styles.panel}><div className={styles.panelHeader}><h2>Задачи по статусам</h2></div><div className={report.statuses}>{Object.entries(statusLabels).map(([status, label]) => {
+          const count = data.statuses.find((item) => item.status === status)?.task_count || 0
+          return <div key={status}><div className={report.label}><span>{label}</span><strong>{count}</strong></div><div className={report.track + ' ' + report[status]} role="meter" aria-label={label} aria-valuenow={count} aria-valuemin={0} aria-valuemax={Math.max(1, data.summary.total_tasks)} aria-valuetext={count + ' из ' + data.summary.total_tasks}><span style={{ width: (data.summary.total_tasks ? count / data.summary.total_tasks * 100 : 0) + '%' }} /></div></div>
+        })}{data.summary.total_tasks === 0 && <p className={styles.muted}>Задач пока нет.</p>}</div></section>
+        <section className={styles.panel}><div className={styles.panelHeader}><h2>Топ проектов по числу задач</h2></div><Table columns={columns} rows={data.ranked} rowKey={(project) => project.project_id} caption="Загрузка проектов" emptyMessage="Доступных проектов пока нет." /></section>
       </div>
-      <aside className={styles.notice}><Icon name="info" /><p>Заготовка аналитики на демонстрационных данных. Подготовлен API-клиент для сводки, распределения задач по статусам и рейтинга проектов.</p></aside>
-    </>
-  )
+      <div className={styles.notice}>Всего проектов: {data.summary.total_projects} · Задач: {data.summary.total_tasks} · В среднем на проект: {data.summary.avg_tasks_per_project === null ? 'нет данных' : data.summary.avg_tasks_per_project.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}</div>
+    </>}
+  </>
 }

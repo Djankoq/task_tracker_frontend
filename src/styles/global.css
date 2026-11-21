@@ -11,4 +11,9 @@ h1 { font-size: clamp(1.75rem, 3vw, 2.1rem); line-height: 1.25; letter-spacing: 
 h2 { font-size: 1.1rem; line-height: 1.4; font-weight: 650; letter-spacing: -.015em; }
 h3 { font-size: 1rem; font-weight: 600; }
 ::selection { background: #dcdcff; }
+.error-state { padding: 2rem 1.5rem; text-align: center; color: #9b3347; }
+.error-state h2 { margin-bottom: .65rem; }
+.table-description { display: block; max-width: 300px; white-space: normal; overflow-wrap: anywhere; }
+textarea { resize: vertical; }
+.select-input { appearance: none; padding-right: 2.4rem !important; background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2369748a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right .7rem center !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
