@@ -1,6 +1,7 @@
 import { usersApi, userSortFields } from '../../api/users'
 import { Badge, type Column } from '../../components/ui'
-import { ResourceList, type ListFilter } from '../../components/lists/ResourceList'
+import { ResourceList } from '../../components/lists/ResourceList'
+import type { ListFilter, RangeFilter } from '../../components/lists/FiltersPanel'
 import { useSession } from '../../contexts/SessionContext'
 import { booleanFilter, positiveId, readListParams } from '../../utils/listParams'
 import type { User } from '../../types'
@@ -15,11 +16,16 @@ const filters: ListFilter[] = [
   { name: 'is_active', label: 'Активность', options: [{ value: 'true', label: 'Активные' }, { value: 'false', label: 'Неактивные' }] },
   { name: 'project_id', label: 'ID проекта', type: 'number' },
 ]
+const ranges: RangeFilter[] = [
+  { label: 'ID пользователя', lower: 'user_id_min', upper: 'user_id_max', type: 'number' },
+]
 function loadPage(query: URLSearchParams, signal: AbortSignal) {
   return usersApi.getAll({
     ...readListParams(query, userSortFields, 'user_id'),
     is_admin: booleanFilter(query.get('is_admin')), is_active: booleanFilter(query.get('is_active')),
     project_id: positiveId(query.get('project_id')),
+    user_id_min: positiveId(query.get('user_id_min')),
+    user_id_max: positiveId(query.get('user_id_max')),
   }, signal)
 }
 export function UsersList() {
@@ -27,6 +33,6 @@ export function UsersList() {
   return <ResourceList title="Пользователи" subtitle="Участники команды и их роли. Данные загружаются из API."
     basePath="/users" columns={columns} loadPage={loadPage} remove={usersApi.delete}
     rowId={(row) => row.user_id} rowName={(row) => row.display_name}
-    filters={filters} sortFields={userSortFields} defaultSort="user_id"
+    filters={filters} ranges={ranges} sortFields={userSortFields} defaultSort="user_id"
     canDelete={(row) => row.user_id !== user?.user_id} />
 }

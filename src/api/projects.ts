@@ -4,6 +4,8 @@ import type { ListParams, Project, ProjectDraft, ProjectMember } from '../types'
 export const projectSortFields = ['project_id', 'name', 'description'] as const
 export interface ProjectListParams extends ListParams {
   sort_by?: typeof projectSortFields[number]; name?: string; member_id?: number; has_tasks?: boolean
+  task_count_min?: number
+  task_count_max?: number
 }
 export const projectsApi = {
   ...crudService<Project, ProjectDraft, ProjectDraft, ProjectListParams>('projects'),

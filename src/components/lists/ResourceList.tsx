@@ -1,33 +1,32 @@
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, getApiErrorMessage } from '../../api/client'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useQuery } from '../../hooks/useQuery'
-import { Badge, Button, ButtonLink, Input, Loader, Table, type Column } from '../ui'
+import { Badge, Button, ButtonLink, Loader, Table, type Column } from '../ui'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { ErrorState } from '../ui/ErrorState'
+import { EmptyState } from './EmptyState'
+import { FiltersPanel, type ListFilter, type RangeFilter } from './FiltersPanel'
+import { withFilters } from '../../utils/filterParams'
 import { readListParams } from '../../utils/listParams'
 import type { PageResponse } from '../../types'
 import styles from '../../pages/Pages.module.css'
-export interface ListFilter {
-  name: string; label: string; type?: 'number'
-  options?: { value: string; label: string }[]
-}
 interface Props<T> {
   title: string; subtitle: string; basePath: string; columns: Column<T>[]
   loadPage: (query: URLSearchParams, signal: AbortSignal) => Promise<PageResponse<T>>
   remove: (id: number) => Promise<void>
   rowId: (row: T) => number; rowName: (row: T) => string
-  filters?: ListFilter[]; canCreate?: boolean; canDelete?: (row: T) => boolean
+  filters?: ListFilter[]; ranges?: RangeFilter[]
+  canCreate?: boolean; canDelete?: (row: T) => boolean
   sortFields: readonly string[]; defaultSort: string
 }
-function SearchForm({ value, onSearch }: { value: string; onSearch: (text: string) => void }) {
-  const [text, setText] = useState(value)
-  function submit(event: FormEvent) { event.preventDefault(); onSearch(text.trim()) }
-  return <form className={styles.searchForm} onSubmit={submit}><Input label="Поиск" type="search" placeholder="Введите запрос" value={text} onChange={(event) => setText(event.target.value)} /><Button type="submit" variant="secondary">Найти</Button></form>
-}
-export function ResourceList<T>({ title, subtitle, basePath, columns, loadPage, remove, rowId, rowName, filters = [], canCreate = true, canDelete = () => true, sortFields, defaultSort }: Props<T>) {
+export function ResourceList<T>({ title, subtitle, basePath, columns, loadPage, remove, rowId, rowName, filters = [], ranges = [], canCreate = true, canDelete = () => true, sortFields, defaultSort }: Props<T>) {
   const [params, setParams] = useSearchParams()
+  const latestParams = useRef(params)
+  useLayoutEffect(() => {
+    latestParams.current = params
+  }, [params])
   const queryString = params.toString()
   const pageParams = readListParams(params, sortFields, defaultSort)
   const load = useCallback((signal: AbortSignal) => loadPage(new URLSearchParams(queryString), signal), [loadPage, queryString])
@@ -36,19 +35,50 @@ export function ResourceList<T>({ title, subtitle, basePath, columns, loadPage, 
   const [target, setTarget] = useState<T | null>(null)
   const [busy, setBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  function setField(name: string, value: string, resetPage = true) {
-    const next = new URLSearchParams(params)
-    if (value) next.set(name, value)
-    else next.delete(name)
-    if (resetPage) next.set('page', '1')
+  const [resetVersion, setResetVersion] = useState(0)
+  const filterNames = ['search', ...filters.map((filter) => filter.name), ...ranges.flatMap((range) => [range.lower, range.upper])]
+  const filtered = filterNames.some((name) => Boolean(params.get(name)))
+
+  function updateParams(update: (current: URLSearchParams) => URLSearchParams) {
+    const current = latestParams.current
+    const next = update(current)
+    if (next.toString() === current.toString()) return
+    // Compose consecutive actions even if the router hasn't rendered the first URL yet.
+    latestParams.current = next
     setParams(next)
   }
+
+  function changeFilters(changes: Record<string, string>) {
+    if (changes.search === '') setResetVersion((version) => version + 1)
+    updateParams((current) => withFilters(current, changes))
+  }
+
+  function resetFilters() {
+    setResetVersion((version) => version + 1)
+    updateParams((current) => {
+      const next = withFilters(current, Object.fromEntries(filterNames.map((name) => [name, ''])))
+      if (Number(current.get('page')) > 1) next.set('page', '1')
+      return next
+    })
+  }
+
+  function setField(name: string, value: string, resetPage = true) {
+    updateParams((current) => {
+      const next = new URLSearchParams(current)
+      if (value) next.set(name, value)
+      else next.delete(name)
+      if (resetPage) next.set('page', '1')
+      return next
+    })
+  }
   function sort(key: string) {
-    const next = new URLSearchParams(params)
-    next.set('sort_by', key)
-    next.set('sort_order', pageParams.sort_by === key && pageParams.sort_order === 'asc' ? 'desc' : 'asc')
-    next.set('page', '1')
-    setParams(next)
+    updateParams((current) => {
+      const { sort_by, sort_order } = readListParams(current, sortFields, defaultSort)
+      return withFilters(current, {
+        sort_by: key,
+        sort_order: sort_by === key && sort_order === 'asc' ? 'desc' : 'asc',
+      })
+    })
   }
   async function confirmDelete() {
     if (!target || busy) return
@@ -79,24 +109,22 @@ export function ResourceList<T>({ title, subtitle, basePath, columns, loadPage, 
       {canCreate && <ButtonLink to={basePath + '/new'}>Добавить</ButtonLink>}</div>
     <section className={styles.panel} aria-label={title}>
       <div className={styles.panelHeader}><h2>{title}</h2><Badge>{query.data ? query.data.total + ' записей' : 'API'}</Badge></div>
-      <div className={styles.toolbar}>
-        <SearchForm key={params.get('search') || ''} value={params.get('search') || ''} onSearch={(value) => setField('search', value)} />
-        {filters.map((filter) => <div className={styles.selectField} key={filter.name}>
-          <label htmlFor={'filter-' + filter.name}>{filter.label}</label>
-          {filter.options
-            ? <select id={'filter-' + filter.name} className={styles.select} value={params.get(filter.name) || ''} onChange={(event) => setField(filter.name, event.target.value)}><option value="">Все</option>{filter.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-            : <input id={'filter-' + filter.name} className={styles.filterInput} type="number" min="1" step="1" placeholder="ID" value={params.get(filter.name) || ''} onChange={(event) => setField(filter.name, event.target.value)} />}
-        </div>)}
-        <Button variant="secondary" onClick={() => setParams({})}>Сбросить</Button>
-      </div>
+      <FiltersPanel params={params} filters={filters} ranges={ranges} resetVersion={resetVersion}
+        onChange={changeFilters} onReset={resetFilters} />
       {query.loading ? <Loader /> : query.error ? <ErrorState message={query.error} retry={query.refresh} /> : query.data && <>
-        <Table columns={allColumns} rows={query.data.items} rowKey={rowId} caption={title}
-          sortBy={pageParams.sort_by} sortOrder={pageParams.sort_order} onSort={sort}
-          emptyMessage="Записей не найдено. Измените фильтры или добавьте новую запись." />
+        {query.data.items.length > 0
+          ? <Table columns={allColumns} rows={query.data.items} rowKey={rowId} caption={title}
+              sortBy={pageParams.sort_by} sortOrder={pageParams.sort_order} onSort={sort} />
+          : <EmptyState filtered={filtered} total={query.data.total} onReset={resetFilters} />}
         <div className={styles.pagination}>
           <span role="status">Найдено: {query.data.total} · Страница {query.data.page} из {Math.max(1, query.data.total_pages)}</span>
           <label>На странице <select aria-label="Записей на странице" className={styles.select} value={pageParams.per_page} onChange={(event) => setField('per_page', event.target.value)}>{[5, 10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
-          <div className={styles.rowActions}><Button variant="secondary" disabled={query.data.page <= 1} onClick={() => setField('page', String(query.data!.page - 1), false)}>Назад</Button><Button variant="secondary" disabled={query.data.page >= query.data.total_pages} onClick={() => setField('page', String(query.data!.page + 1), false)}>Вперёд</Button></div>
+          <div className={styles.rowActions}>
+            <Button variant="secondary" disabled={query.data.page <= 1}
+              onClick={() => setField('page', String(Math.min(query.data!.page - 1, Math.max(1, query.data!.total_pages))), false)}>Назад</Button>
+            <Button variant="secondary" disabled={query.data.page >= query.data.total_pages}
+              onClick={() => setField('page', String(query.data!.page + 1), false)}>Вперёд</Button>
+          </div>
         </div>
       </>}
     </section>
